@@ -75,7 +75,7 @@ npm run dev
 
 ## Data
 
-Befolkningstall for 234 land for årene 1970, 1980, 1990, 2000, 2010, 2015, 2020, 2022 og 2023, med areal, befolkningstetthet og vekstrate. Kilde: [legg inn kilde].
+Befolkningstall for 234 land for årene 1970, 1980, 1990, 2000, 2010, 2015, 2020, 2022 og 2023, med areal, befolkningstetthet og vekstrate. 
 
 ## Forfatter
 
