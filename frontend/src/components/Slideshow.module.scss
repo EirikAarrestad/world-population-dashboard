@@ -1,13 +1,10 @@
 .container {
-    position: relative;
-    bottom: 10px;
+    width: 100%;
 }
 
-.divStyle {
+.slide {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-size: cover;
     height: 500px;
-    position: relative;
 }

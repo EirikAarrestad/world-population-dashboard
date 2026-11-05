@@ -7,62 +7,40 @@
     font-family: "Work Sans", sans-serif;
 }
 
-.grid-container {
-    h2 {
-        margin-top: 20px;
-        font-size: 25px;
-        margin-bottom: 0;
-    }
-
-    p {
-        margin: 0;
-    }
-    button {
-        margin-top: 20px;
-    }
-
-    .inputContainers {
-        label {
-            margin-top: 20px;
-        }
-
-        label,
-        input,
-        select {
-            display: block;
-        }
-        select {
-            width: 130px;
-            padding: 5px 10px;
-        }
-
-        option {
-            font-size: 15px;
-        }
-
-        button {
-            margin-top: 25px;
-        }
-    }
+.grid-container h2 {
+    margin-top: 20px;
+    margin-bottom: 0;
+    font-size: 25px;
 }
 
-.grid-item {
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 20px;
-    font-size: 30px;
-    text-align: left;
-    border: 2px solid black;
+.grid-container p {
+    margin: 0;
 }
 
+/* Title on the left, controls on the right. Wraps on narrow screens */
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+}
+
+.content,
 .continentContainer {
-    position: absolute;
-    left: 250px;
-    top: 200px;
+    width: 100%;
 }
 
 button {
     border-radius: 8px;
-    border: 1px solid transparent;
+    border: 1px solid #747bff;
     padding: 0.6em 1.2em;
     font-size: 1em;
     font-weight: 500;
@@ -70,14 +48,12 @@ button {
     background-color: #1a1a1a;
     cursor: pointer;
     transition: border-color 0.25s;
-    border: #747bff 1px solid;
-    position: relative;
-    left: 875px;
-    bottom: 60px;
 }
+
 button:hover {
     border-color: #646cff;
 }
+
 button:focus,
 button:focus-visible {
     outline: 4px auto -webkit-focus-ring-color;

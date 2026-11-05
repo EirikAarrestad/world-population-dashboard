@@ -1,157 +1,112 @@
+"""Flask backend serving world population data to the React frontend.
+
+The CSV file has one row per country and one column per year. At startup it
+is reshaped to long format (one row per country and year), and the endpoints
+below filter and aggregate it.
+"""
+
 import pandas as pd
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-# Bruker flask serverer til en backsend som kan behandle dataene fra .CSV filen og fra frontenden
-# Tillater Cross Origin Resource Sharing (CORS) så vi kan sende data mellom servere
+DATA_FILE = "world_population_data.csv"
+YEARS = ["1970", "1980", "1990", "2000", "2010", "2015", "2020", "2022", "2023"]
+LATEST_YEAR = "2023"
+
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # Allow requests from the frontend, which runs on another port
 
 
-def load_data(filename):
-    """
-    Load data from a CSV file.
+def load_data(filename: str) -> pd.DataFrame:
+    """Load the population data from a CSV file.
 
-    Parameters:
-    - filename (str): The path to the CSV file.
-
-    Returns:
-    - pd.DataFrame: Loaded DataFrame from the CSV file.
-    """
-    df = pd.read_csv(filename)
-    return df
-
-
-def preprocess_data(df):
-    """
-    Preprocess the data by grouping and aggregating population data.
-
-    Parameters:
-    - df (pd.DataFrame): The original DataFrame.
+    Args:
+        filename: Path to the CSV file.
 
     Returns:
-    - pd.DataFrame: Processed DataFrame with grouped and aggregated population data.
+        One row per country, with one population column per year.
     """
-    cols = df.columns[4:13]
-    df_processed = (
-        df.groupby(["country", "continent"])[cols].sum().stack().reset_index()
+    return pd.read_csv(filename)
+
+
+def to_long_format(df: pd.DataFrame) -> pd.DataFrame:
+    """Reshape the data to one row per country and year.
+
+    Args:
+        df: Data with one row per country and one column per year.
+
+    Returns:
+        Columns country, continent, year (as a string, e.g. "2023") and
+        population.
+    """
+    df_long = df.melt(
+        id_vars=["country", "continent"],
+        value_vars=YEARS,
+        var_name="year",
+        value_name="population",
     )
-    df_processed.columns = ["country", "continent", "year", "population"]
-    df_processed["year"] = df_processed["year"].str[0:4]
-    df_processed["year"] = pd.to_datetime(df_processed["year"], format="%Y")
-    return df_processed
+    return df_long
 
 
-def filter_data_by_year(df, target_year):
-    """
-    Filter data based on a target year.
-
-    Parameters:
-    - df (pd.DataFrame): The DataFrame to filter.
-    - target_year (str): The target year for filtering.
-
-    Returns:
-    - pd.DataFrame: Filtered DataFrame for the target year.
-    """
-    return df.query(f"year=='{target_year}'")
+# Loaded once at startup and shared by all endpoints
+df = load_data(DATA_FILE)
+df_long = to_long_format(df)
 
 
 @app.route("/continent_growth")
-def get_continent_growth_data():
-    """
-    Retrieve continent growth data.
+def continent_growth():
+    """Total population per continent for each year.
 
     Returns:
-    - jsonify: JSON response containing aggregated continent growth data.
+        JSON list with one object per continent, e.g.
+        {"continent": "Asia", "1970": ..., "2023": ...}.
     """
-    chart_data = (
-        df.groupby("continent")[
-            [
-                "2023",
-                "2022",
-                "2020",
-                "2015",
-                "2010",
-                "2000",
-                "1990",
-                "1980",
-                "1970",
-            ]
-        ]
-        .sum()
-        .reset_index()
-        .to_dict(orient="records")
-    )
-    return jsonify(chart_data)
+    totals = df.groupby("continent")[YEARS].sum().reset_index()
+    return jsonify(totals.to_dict(orient="records"))
 
 
 @app.route("/country_growth")
-def country_growth_data():
-    """
-    Retrieve country growth data.
+def country_growth():
+    """Population of one country for each year.
+
+    Query parameters:
+        country: Name of the country, e.g. "Norway".
 
     Returns:
-    - jsonify: JSON response containing aggregated country growth data.
+        JSON object mapping year to population, e.g. {"1970": ..., "2023": ...}.
     """
     country = request.args.get("country")
-
-    country_data = (
-        df[df["country"] == country][
-            [
-                "2023",
-                "2022",
-                "2020",
-                "2015",
-                "2010",
-                "2000",
-                "1990",
-                "1980",
-                "1970",
-            ]
-        ]
-        .sum()
-        .to_dict()
-    )
-
-    return jsonify(country_data)
+    populations = df.loc[df["country"] == country, YEARS].sum()
+    return jsonify(populations.to_dict())
 
 
 @app.route("/get_population_data")
 def get_population_data():
-    """
-    Retrieve population data for the specified year.
+    """Population of every country in the latest year.
 
     Returns:
-    - jsonify: JSON response containing population data.
+        JSON list with one object per country.
     """
-    data = df_filtered.to_dict(orient="records")
-    return jsonify(data)
+    latest = df_long[df_long["year"] == LATEST_YEAR]
+    return jsonify(latest.to_dict(orient="records"))
 
 
 @app.route("/get_country_population_data")
 def get_country_population_data():
-    """
-    Retrieve population data for the specified continent and the year 2023.
+    """Population of every country in one continent in the latest year.
+
+    Query parameters:
+        continent: Name of the continent, e.g. "Europe".
 
     Returns:
-    - jsonify: JSON response containing population data for the specified continent and year 2023.
+        JSON list with one object per country in the continent.
     """
     continent = request.args.get("continent")
-
-    filtered_data = df_processed[
-        (df_processed["continent"] == continent) & (df_processed["year"] == "2023")
-    ].to_dict(orient="records")
-
-    return jsonify(filtered_data)
+    selected = df_long[
+        (df_long["continent"] == continent) & (df_long["year"] == LATEST_YEAR)
+    ]
+    return jsonify(selected.to_dict(orient="records"))
 
 
 if __name__ == "__main__":
-    data_filename = "world_population_data.csv"
-    df = load_data(data_filename)
-
-    df_processed = preprocess_data(df)
-
-    target_year = "2023-01-01"
-    df_filtered = filter_data_by_year(df_processed, target_year)
-
     app.run(debug=True)

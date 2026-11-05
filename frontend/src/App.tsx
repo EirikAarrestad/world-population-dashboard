@@ -1,79 +1,62 @@
 import "./App.css";
 import React, { useState } from "react";
 import InputComponent from "./components/InputComponent";
-import ContinentCholoropleth from "./components/ContinentCholoropleth";
+import ContinentChoropleth from "./components/ContinentChoropleth";
 import CountryGrowth from "./components/CountryGrowth";
 import Slideshow from "./components/Slideshow";
 
+// Special values from the dropdowns: the whole world, or all countries
+const WHOLE_WORLD = "whole_";
+const ALL_COUNTRIES = "all_";
+
+const CONTINENTS = [
+    "Africa",
+    "Asia",
+    "Europe",
+    "North America",
+    "Oceania",
+    "South America",
+];
+
 const App: React.FC = () => {
-    const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-    const [selectedCountry, setSelectedCountry] = useState<string>("");
+    // Latest selection in the dropdowns, and the selection currently shown
+    const [selectedOption, setSelectedOption] = useState<string>("");
+    const [shownOption, setShownOption] = useState<string>("");
 
-    // Funksjon for å håndtere endringer i valg
-    const handleOptionChange = (selectedValue: string) => {
-        setSelectedOptions((prevSelectedOptions) => [
-            ...prevSelectedOptions,
-            selectedValue,
-        ]);
-    };
-
-    // Mulige kontinenter
-    // er er all_ alle land
-    // og whole_ hele verden
-    const continents = [
-        "Africa",
-        "Antarctica",
-        "Asia",
-        "Europe",
-        "North America",
-        "Oceania",
-        "South America",
-        "all_",
-        "whole_",
-    ];
-
-    // Funksjon for å håndtere knappetrykk
-    const handleButtonClick = () => {
-        const lastSelectedOption = selectedOptions[selectedOptions.length - 1];
-
-        setSelectedCountry(lastSelectedOption);
-        console.log("Selected Country:", selectedCountry);
-    };
-
-    // Sjekk om det valgte landet er en kontinent
-    const isContinent = (country: string): boolean => {
-        return continents.includes(country);
+    // Choose which visualisation to show for the current selection
+    const renderContent = () => {
+        if (
+            !shownOption ||
+            shownOption === WHOLE_WORLD ||
+            shownOption === ALL_COUNTRIES
+        ) {
+            return <Slideshow />;
+        }
+        if (CONTINENTS.includes(shownOption)) {
+            return <ContinentChoropleth continent={shownOption} />;
+        }
+        return <CountryGrowth country={shownOption} />;
     };
 
     return (
         <div className="grid-container">
-            <div>
-                <h2>Verdens befolkning</h2>
-                <p>
-                    Velg mellom å se befolkningsveksten til et land eller
-                    kontinent
-                </p>
-                <InputComponent
-                    selectedOption={selectedOptions}
-                    onOptionChange={handleOptionChange}
-                />
-                <button onClick={handleButtonClick}>Se data</button>
-            </div>
-            <div>
-                {selectedCountry ? (
-                    selectedCountry === "whole_" ||
-                    selectedCountry === "all_" ||
-                    !selectedCountry ? (
-                        <Slideshow />
-                    ) : isContinent(selectedCountry) ? (
-                        <ContinentCholoropleth continent={selectedCountry} />
-                    ) : (
-                        <CountryGrowth country={selectedCountry} />
-                    )
-                ) : (
-                    <Slideshow />
-                )}
-            </div>
+            {/* Title and controls at the top, visualisation below */}
+            <header className="header">
+                <div>
+                    <h2>Verdens befolkning</h2>
+                    <p>
+                        Velg mellom å se befolkningsveksten til et land eller
+                        kontinent
+                    </p>
+                </div>
+                <div className="controls">
+                    <InputComponent onOptionChange={setSelectedOption} />
+                    <button onClick={() => setShownOption(selectedOption)}>
+                        Se data
+                    </button>
+                </div>
+            </header>
+            <div className="content">{renderContent()}</div>
         </div>
     );
 };

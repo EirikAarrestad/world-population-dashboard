@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Plot from "react-plotly.js";
 import { format } from "d3-format";
+import { API_URL } from "../api";
+import { darkLayout, logPopulationColorbar } from "../plotStyle";
 
-// TypeScript interface som viser hva ulike variabler sine typer skal være
 interface PopulationDataItem {
     country: string;
     continent: string;
@@ -12,57 +13,58 @@ interface PopulationDataItem {
     population: number;
 }
 
-const Choloropleth: React.FC = ({}) => {
+const formatNumber = format(",");
+
+// World map coloured by population in 2023
+const Choropleth: React.FC = () => {
     const [populationData, setPopulationData] = useState<PopulationDataItem[]>(
         []
     );
 
-    // UseEffect hook for å hente befolkningsdata med axios, bruker deretter useState for å large dataene
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const response = await axios.get(
-                    "http://localhost:5000/get_population_data"
+                    `${API_URL}/get_population_data`
                 );
                 setPopulationData(response.data);
             } catch (error) {
                 console.error("Error fetching data:", error);
             }
         };
-
         fetchData();
     }, []);
-
-    // Lager en formateringsfunksjon med d3-format biblioteket
-    const formatNumber = format(",");
 
     return (
         <div className="continents">
             <Plot
+                useResizeHandler
+                style={{ width: "100%", height: "100%" }}
                 data={[
                     {
                         type: "choropleth",
                         locations: populationData.map((item) => item.country),
                         locationmode: "country names",
-                        z: populationData.map((item) => item.population),
+                        // Log scale, so differences between small countries are visible
+                        z: populationData.map((item) =>
+                            Math.log10(item.population)
+                        ),
                         text: populationData.map(
                             (item) =>
                                 `${item.country}: ${formatNumber(
                                     item.population
                                 )}`
                         ),
-                        hoverinfo: "text",
                         hovertemplate: "<b>%{text}</b><extra></extra>",
-                        marker: {
-                            line: {
-                                color: "#1a1a1a",
-                                width: 1,
-                            },
-                        },
-                        colorscale: "Rainbow",
+                        marker: { line: { color: "#1a1a1a", width: 1 } },
+                        colorscale: "Viridis",
+                        colorbar: logPopulationColorbar,
                     },
                 ]}
                 layout={{
+                    ...darkLayout,
+                    title: "Verdenskart - Befolkning",
+                    hovermode: "closest",
                     geo: {
                         projection_type: "natural earth",
                         showcoastlines: true,
@@ -70,17 +72,10 @@ const Choloropleth: React.FC = ({}) => {
                         showocean: true,
                         oceancolor: "LightBlue",
                     },
-                    title: "Verdenskart - Befolkning",
-                    hovermode: "closest",
-                    paper_bgcolor: "#1a1a1a",
-                    font: {
-                        color: "white",
-                        family: "Work Sans, sans-serif",
-                    },
                 }}
             />
         </div>
     );
 };
 
-export default Choloropleth;
+export default Choropleth;

@@ -1,67 +1,52 @@
-import jsonCountries from "./countries";
-import React, { useEffect, useState } from "react";
-import styles from "./Inputcomponent.module.scss";
+import countries from "./countries";
+import React, { useState } from "react";
+import styles from "./InputComponent.module.scss";
 
-// Definerer egenskapene til InputComponent
 interface InputComponentProps {
-    selectedOption: string[];
+    // Called with the selected continent or country
     onOptionChange: (selectedValue: string) => void;
 }
 
-// Definerer kontinenter som skal bli brukt i programmet
-const continents = [
-    { name: "Africa", value: "Africa" },
-    { name: "Asia", value: "Asia" },
-    { name: "Europe", value: "Europe" },
-    { name: "North America", value: "North America" },
-    { name: "Oceania", value: "Oceania" },
-    { name: "South America", value: "South America" },
+const CONTINENTS = [
+    "Africa",
+    "Asia",
+    "Europe",
+    "North America",
+    "Oceania",
+    "South America",
 ];
 
-const InputComponent: React.FC<InputComponentProps> = ({
-    selectedOption,
-    onOptionChange,
-}) => {
-    // ulike useState funksjoner som blir brukt i løpet av programmet
-    const [selectedContinent, setSelectedContinent] = useState<string>("");
-    const [selectedCountry, setSelectedCountry] = useState<string>("");
-    const [filteredCountries, setFilteredCountries] = useState(jsonCountries);
+// Dropdowns for choosing a continent, and a country within that continent
+const InputComponent: React.FC<InputComponentProps> = ({ onOptionChange }) => {
+    const [selectedContinent, setSelectedContinent] = useState<string>("whole_");
+    const [selectedCountry, setSelectedCountry] = useState<string>("all_");
 
-    // useEffekt som trigges når valgt kontinent endres
-    useEffect(() => {
-        const filteredCountries =
-            selectedContinent == "whole_"
-                ? jsonCountries
-                : jsonCountries.filter(
-                      (country) => country.continent === selectedContinent
-                  );
+    // Only show countries in the selected continent
+    const filteredCountries =
+        selectedContinent === "whole_"
+            ? countries
+            : countries.filter(
+                  (country) => country.continent === selectedContinent
+              );
 
-        setFilteredCountries(filteredCountries);
-        console.log(selectedOption);
-    }, [selectedContinent]);
-
-    // Funksjon for å håndtere endring av kontinent
     const handleContinentChange = (
         event: React.ChangeEvent<HTMLSelectElement>
     ) => {
-        const selectedContinent = event.target.value;
-        setSelectedContinent(selectedContinent);
-        onOptionChange(selectedContinent);
+        setSelectedContinent(event.target.value);
+        setSelectedCountry("all_");
+        onOptionChange(event.target.value);
     };
 
-    // Funksjon for å håndtere endring av land
     const handleCountryChange = (
         event: React.ChangeEvent<HTMLSelectElement>
     ) => {
-        const selectedCountry = event.target.value;
-        setSelectedCountry(selectedCountry);
-        onOptionChange(selectedCountry);
-        console.log(selectedCountry);
+        setSelectedCountry(event.target.value);
+        onOptionChange(event.target.value);
     };
 
     return (
         <div className={styles.inputContainer}>
-            <div className={styles.inputRow}>
+            <div>
                 <label htmlFor="continent">Kontinent</label>
                 <select
                     name="continent"
@@ -70,14 +55,14 @@ const InputComponent: React.FC<InputComponentProps> = ({
                     onChange={handleContinentChange}
                 >
                     <option value="whole_">Hele verden</option>
-                    {continents.map((continent) => (
-                        <option key={continent.value} value={continent.value}>
-                            {continent.name}
+                    {CONTINENTS.map((continent) => (
+                        <option key={continent} value={continent}>
+                            {continent}
                         </option>
                     ))}
                 </select>
             </div>
-            <div className={styles.inputRow}>
+            <div>
                 <label htmlFor="country">Land</label>
                 <select
                     name="country"

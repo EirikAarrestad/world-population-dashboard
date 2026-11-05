@@ -2,40 +2,23 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Plot from "react-plotly.js";
 import { format } from "d3-format";
+import { API_URL, YEARS } from "../api";
+import { darkLayout } from "../plotStyle";
 
-// Interface for hvilke typer befolkningdata-variablene skal ha
-interface PopulationData {
-    continent: string;
-    populations: Record<string, number>;
-}
+// One row per continent from the backend, with one key per year
+type ContinentRow = { continent: string } & Record<string, number>;
 
+const formatNumber = format(",");
+
+// Line chart of total population per continent over time
 const ContinentGrowth = () => {
-    const [data, setData] = useState<PopulationData[]>([]);
+    const [data, setData] = useState<ContinentRow[]>([]);
 
-    // UseEffect hook som henter data for å vise befolkningsvekst fra 1970-2020
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(
-                    "http://localhost:5000/continent_growth"
-                );
-
-                const newData = [];
-                for (let index = 0; index < 5; index++) {
-                    newData.push({
-                        continent: response.data[index]["continent"],
-                        populations: {
-                            "2020": response.data[index]["2020"],
-                            "2010": response.data[index]["2010"],
-                            "2000": response.data[index]["2000"],
-                            "1990": response.data[index]["1990"],
-                            "1980": response.data[index]["1980"],
-                            "1970": response.data[index]["1970"],
-                        },
-                    });
-                }
-
-                setData(newData);
+                const response = await axios.get(`${API_URL}/continent_growth`);
+                setData(response.data);
             } catch (error) {
                 console.error("Error fetching data:", error);
             }
@@ -43,33 +26,28 @@ const ContinentGrowth = () => {
         fetchData();
     }, []);
 
-    // Lager en formateringsfunksjon med d3-format biblioteket
-    const formatNumber = format(",");
-
     return (
         <div>
             <Plot
-                data={data.map((item) => ({
-                    type: "scatter",
-                    mode: "lines",
-                    name: item.continent,
-                    x: Object.keys(item.populations),
-                    y: Object.values(item.populations),
-                    hoverinfo: "x",
-                    hovertemplate: "<b>%{text}</b><extra></extra>",
-                    text: Object.values(item.populations).map((value) =>
-                        formatNumber(value)
-                    ),
-                }))}
+                useResizeHandler
+                style={{ width: "100%", height: "100%" }}
+                data={data.map((row) => {
+                    const populations = YEARS.map((year) => row[year]);
+                    return {
+                        type: "scatter" as const,
+                        mode: "lines" as const,
+                        name: row.continent,
+                        x: YEARS,
+                        y: populations,
+                        text: populations.map((value) => formatNumber(value)),
+                        hovertemplate: "<b>%{text}</b><extra></extra>",
+                    };
+                })}
                 layout={{
+                    ...darkLayout,
                     title: "Befolkningsvekst",
                     xaxis: { title: "År" },
                     yaxis: { title: "Befolkning" },
-                    paper_bgcolor: "#1a1a1a",
-                    font: {
-                        color: "white",
-                        family: "Work Sans, sans-serif",
-                    },
                 }}
             />
         </div>

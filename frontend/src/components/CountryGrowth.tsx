@@ -3,27 +3,27 @@ import axios from "axios";
 import Plot from "react-plotly.js";
 import { format } from "d3-format";
 import "../App.css";
+import { API_URL, YEARS } from "../api";
+import { darkLayout } from "../plotStyle";
 
 interface CountryGrowthProps {
     country: string;
 }
 
-const CountryGrowth: React.FC<CountryGrowthProps> = ({ country }) => {
-    const [data, setData] = useState<number>();
+const formatNumber = format(",");
 
-    // UseEffect hook som henter vekst med land som parameter
+// Line chart of the population of one country over time
+const CountryGrowth: React.FC<CountryGrowthProps> = ({ country }) => {
+    // Population per year, e.g. { "1970": 557501301, ... }
+    const [data, setData] = useState<Record<string, number> | null>(null);
+
+    // Fetch new data whenever the selected country changes
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(
-                    "http://localhost:5000/country_growth",
-                    {
-                        params: {
-                            country: country,
-                        },
-                    }
-                );
-
+                const response = await axios.get(`${API_URL}/country_growth`, {
+                    params: { country },
+                });
                 setData(response.data);
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -32,34 +32,33 @@ const CountryGrowth: React.FC<CountryGrowthProps> = ({ country }) => {
         fetchData();
     }, [country]);
 
-    // Lager en formateringsfunksjon med d3-format biblioteket
-    const formatNumber = format(",");
-
     if (!data) {
-        return;
+        return null;
     }
+
+    const populations = YEARS.map((year) => data[year]);
 
     return (
         <div className="continentContainer">
             <Plot
+                useResizeHandler
+                style={{ width: "100%", height: "100%" }}
                 data={[
                     {
                         type: "scatter",
                         mode: "lines",
-                        name: "India",
-                        x: Object.keys(data),
-                        y: Object.values(data),
-                        hoverinfo: "x",
+                        name: country,
+                        x: YEARS,
+                        y: populations,
+                        text: populations.map((value) => formatNumber(value)),
                         hovertemplate: "<b>%{text}</b><extra></extra>",
-                        text: Object.values(data).map((value) =>
-                            formatNumber(value)
-                        ),
                     },
                 ]}
                 layout={{
-                    title: `Befolkningsvekst fra ${country}`,
-                    xaxis: { title: "Year" },
-                    yaxis: { title: "Population" },
+                    ...darkLayout,
+                    title: `Befolkningsvekst i ${country}`,
+                    xaxis: { title: "År" },
+                    yaxis: { title: "Befolkning" },
                 }}
             />
         </div>
